@@ -110,18 +110,13 @@ const updateAppointmentStatus = async (req, res) => {
     if (io) {
       if (status === 'Accepted') {
         io.to(`user_${appointment.userId}`).emit('appointment-accepted', { appointmentId });
-      } else if (status === 'Waiting' || status === 'In Consultation' || status === 'Completed') {
-        // Trigger queue update
-        const room = `queue_${appointment.docId}_${appointment.slotDate}`;
-        const pending = await Appointment.countDocuments({
-          docId: appointment.docId,
-          slotDate: appointment.slotDate,
-          status: { $in: ['Accepted', 'Waiting'] }
-        });
-        io.to(room).emit('queue_update', { pendingCount: pending });
       } else if (status === 'Rejected') {
         io.to(`user_${appointment.userId}`).emit('appointment-rejected', { appointmentId });
       }
+
+      // Trigger queue update for everyone waiting on this doctor/date
+      const room = `queue_${appointment.docId}_${appointment.slotDate}`;
+      io.to(room).emit('queue_update', { appointmentId, status });
     }
 
     res.json({ success: true, message: `Status updated to ${status}`, appointment });

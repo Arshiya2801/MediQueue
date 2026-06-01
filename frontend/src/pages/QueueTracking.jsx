@@ -5,25 +5,73 @@ import { AppContext } from '../context/AppContext';
 import { Card, CardContent } from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import { Calendar } from 'lucide-react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
 const QueueTracking = () => {
   const { appointmentId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const { backendUrl, socket } = useContext(AppContext);
+  const { backendUrl, socket, token } = useContext(AppContext);
 
   // Initial State setup
-  const [currentPatient, setCurrentPatient] = useState(12);
-  const [yourNumber] = useState(17);
-  const [patientsAhead, setPatientsAhead] = useState(4); // 16, 15, 14, 13
-  const [estimatedWait, setEstimatedWait] = useState(45); // minutes
+  const [currentPatient, setCurrentPatient] = useState(0);
+  const [yourNumber, setYourNumber] = useState(0);
+  const [patientsAhead, setPatientsAhead] = useState(0);
+  const [estimatedWait, setEstimatedWait] = useState(0); // minutes
   const [status, setStatus] = useState('Waiting');
+  const [loading, setLoading] = useState(true);
   
   // Progress bar calculation
-  const totalInQueue = 5; // You + 4 ahead
-  const progressPercent = Math.max(0, 100 - (patientsAhead / totalInQueue) * 100);
+  // Base total queue on token number. If your token is 5, total is 5.
+  const progressPercent = yourNumber > 0 ? Math.max(0, 100 - (patientsAhead / yourNumber) * 100) : 0;
 
   const { doctor, selectedDate, selectedTime } = location.state || {};
+
+  const fetchQueueStatus = async () => {
+    try {
+      const { data } = await axios.get(`${backendUrl}/api/appointments/queue-status/${appointmentId}`, { headers: { Authorization: `Bearer ${token}` } });
+      if (data.success) {
+        const { queueData } = data;
+        setYourNumber(queueData.yourToken);
+        setCurrentPatient(queueData.currentToken);
+        setPatientsAhead(queueData.patientsAhead);
+        setEstimatedWait(queueData.estimatedWait);
+
+        // Calculate dynamic status
+        if (queueData.status === 'Completed') setStatus('Completed');
+        else if (queueData.status === 'In Consultation') setStatus('In Consultation');
+        else if (queueData.status === 'Called') setStatus('Called');
+        else if (queueData.patientsAhead <= 2 && queueData.patientsAhead > 0) setStatus('Almost Your Turn');
+        else if (queueData.patientsAhead === 0) setStatus('Waiting'); // if ahead is 0 but not called
+        else setStatus('Waiting');
+        
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error(error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (token) fetchQueueStatus();
+  }, [token, appointmentId]);
+
+  useEffect(() => {
+    if (loading) return; // Don't toast on initial load if possible, though strict mode might trigger it.
+    
+    // Using a ref to prevent initial load toasts would be better, but for MVP this works.
+    if (patientsAhead === 3) toast.info("3 patients ahead of you!");
+    if (patientsAhead === 2) toast.info("2 patients ahead of you!");
+    if (patientsAhead === 1) toast.warning("1 patient ahead! Please be ready.");
+  }, [patientsAhead, loading]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (status === 'Called') toast.success("It's your turn! Please proceed to the room.");
+    if (status === 'In Consultation') toast.info("Your consultation has started.");
+  }, [status, loading]);
 
   useEffect(() => {
     if (!socket || !doctor || !selectedDate) return;
@@ -33,28 +81,9 @@ const QueueTracking = () => {
     socket.emit('join_queue', room);
 
     // Listen for real-time updates
-    const handleQueueUpdate = (data) => {
-      if (data.pendingCount !== undefined) {
-        // Calculate the difference or position
-        // In a real app, 'yourNumber' and the 'pendingCount' math would be exact based on queue ID
-        // For this real-time implementation, we'll sync patientsAhead directly to pendingCount 
-        // to show live movement when the doctor clicks 'Complete'
-        setPatientsAhead(data.pendingCount);
-        
-        // Update estimated wait dynamically
-        setEstimatedWait(data.pendingCount * 10);
-        
-        // Move current patient forward
-        setCurrentPatient(prev => prev + 1);
-
-        if (data.pendingCount === 1) {
-          setStatus('Your Turn Soon');
-        } else if (data.pendingCount === 0) {
-          setStatus('Please Proceed to Consultation Room');
-        } else {
-          setStatus('Waiting');
-        }
-      }
+    const handleQueueUpdate = () => {
+      // Whenever doctor updates queue, refetch real exact data from backend
+      fetchQueueStatus();
     };
 
     socket.on('queue_update', handleQueueUpdate);
@@ -77,9 +106,10 @@ const QueueTracking = () => {
   // Dynamic status colors
   const statusConfig = {
     'Waiting': { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-700 dark:text-blue-400', icon: '⏳' },
-    'Doctor Running Late': { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', icon: '⚠️' },
-    'Your Turn Soon': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', icon: '🔔' },
-    'Please Proceed to Consultation Room': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', icon: '✅' },
+    'Almost Your Turn': { bg: 'bg-orange-100 dark:bg-orange-900/30', text: 'text-orange-700 dark:text-orange-400', icon: '🔔' },
+    'Called': { bg: 'bg-yellow-100 dark:bg-yellow-900/30', text: 'text-yellow-700 dark:text-yellow-400', icon: '📢' },
+    'In Consultation': { bg: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-700 dark:text-purple-400', icon: '🩺' },
+    'Completed': { bg: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-700 dark:text-green-400', icon: '✅' },
   };
 
   const currentConfig = statusConfig[status] || statusConfig['Waiting'];

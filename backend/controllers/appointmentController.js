@@ -37,6 +37,19 @@ const bookAppointment = async (req, res) => {
     // Remove slots_booked from docData to save space in appointment doc
     delete docData.slots_booked;
 
+    // Calculate Token Number for the day
+    // Count existing non-cancelled appointments for this doctor on this date
+    const existingAppointments = await Appointment.countDocuments({
+      docId,
+      slotDate,
+      cancelled: false
+    });
+    
+    // Assign token number (1-indexed based on how many are already booked)
+    // NOTE: If they cancel and someone else books, token numbers might not be perfectly sequential
+    // but this gives a unique incremental token for the day.
+    const tokenNumber = existingAppointments + 1;
+
     const appointment = new Appointment({
       userId,
       docId,
@@ -46,6 +59,7 @@ const bookAppointment = async (req, res) => {
       slotTime,
       slotDate,
       date: Date.now(),
+      tokenNumber,
     });
 
     await appointment.save();
@@ -221,4 +235,56 @@ const rescheduleAppointment = async (req, res) => {
   }
 };
 
-export { bookAppointment, myAppointments, completeAppointment, cancelAppointment, rescheduleAppointment };
+// @desc    Get Queue Status for a specific appointment
+// @route   GET /api/appointments/queue-status/:id
+// @access  Private
+const getQueueStatus = async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+    const appointment = await Appointment.findById(appointmentId);
+
+    if (!appointment) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    // Identify current patient (lowest token number that is Waiting, Called, or In Consultation)
+    // If none, maybe look for the next Pending/Accepted one.
+    const currentPatientDoc = await Appointment.findOne({
+      docId: appointment.docId,
+      slotDate: appointment.slotDate,
+      status: { $in: ['Pending', 'Accepted', 'Waiting', 'Called', 'In Consultation'] },
+      cancelled: false
+    }).sort({ tokenNumber: 1 });
+
+    const currentToken = currentPatientDoc ? currentPatientDoc.tokenNumber : appointment.tokenNumber;
+
+    // Calculate patients ahead
+    // Count how many appointments have a lower token number and are still active
+    const patientsAhead = await Appointment.countDocuments({
+      docId: appointment.docId,
+      slotDate: appointment.slotDate,
+      tokenNumber: { $lt: appointment.tokenNumber },
+      status: { $nin: ['Completed', 'Rejected', 'Skipped', 'No Show'] },
+      cancelled: false
+    });
+
+    const estimatedWait = patientsAhead * 15; // 15 mins average wait time
+
+    res.json({
+      success: true,
+      queueData: {
+        appointmentId: appointment._id,
+        yourToken: appointment.tokenNumber,
+        currentToken: currentToken,
+        patientsAhead: patientsAhead,
+        estimatedWait: estimatedWait,
+        status: appointment.status
+      }
+    });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { bookAppointment, myAppointments, completeAppointment, cancelAppointment, rescheduleAppointment, getQueueStatus };

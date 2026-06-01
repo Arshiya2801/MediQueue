@@ -44,17 +44,20 @@ const DoctorAppointments = () => {
   const getStatusBadge = (status) => {
     switch (status) {
       case 'Pending':
-        return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full text-xs font-bold">Pending</span>;
+        return <span className="px-3 py-1 bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400 rounded-full text-xs font-bold">Pending</span>;
       case 'Accepted':
-        return <span className="px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400 rounded-full text-xs font-bold">Accepted</span>;
       case 'Waiting':
-        return <span className="px-3 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs font-bold">Waiting</span>;
+        return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 rounded-full text-xs font-bold">Waiting</span>;
+      case 'Called':
+        return <span className="px-3 py-1 bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 rounded-full text-xs font-bold">Called</span>;
       case 'In Consultation':
         return <span className="px-3 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400 rounded-full text-xs font-bold">In Consultation</span>;
       case 'Completed':
         return <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-bold">Completed</span>;
       case 'Rejected':
-        return <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold">Rejected</span>;
+      case 'Skipped':
+      case 'No Show':
+        return <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold">{status}</span>;
       default:
         return null;
     }
@@ -64,23 +67,19 @@ const DoctorAppointments = () => {
   const renderActionButtons = (app) => {
     switch (app.status) {
       case 'Pending':
+      case 'Accepted':
+      case 'Waiting':
         return (
           <div className="flex gap-2">
-            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => updateStatus(app._id, 'Rejected')}>
-              Reject
+            <Button size="sm" variant="outline" className="text-red-600 border-red-200 hover:bg-red-50" onClick={() => updateStatus(app._id, 'Skipped')}>
+              Skip / No Show
             </Button>
-            <Button size="sm" variant="primary" onClick={() => updateStatus(app._id, 'Accepted')}>
-              Accept
+            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => updateStatus(app._id, 'Called')}>
+              Call Next
             </Button>
           </div>
         );
-      case 'Accepted':
-        return (
-          <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white" onClick={() => updateStatus(app._id, 'Waiting')}>
-            Mark Arrived
-          </Button>
-        );
-      case 'Waiting':
+      case 'Called':
         return (
           <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => updateStatus(app._id, 'In Consultation')}>
             Start Consultation
@@ -94,6 +93,8 @@ const DoctorAppointments = () => {
         );
       case 'Completed':
       case 'Rejected':
+      case 'Skipped':
+      case 'No Show':
         return <span className="text-sm text-gray-400 italic">No further actions</span>;
       default:
         return null;
@@ -140,7 +141,11 @@ const DoctorAppointments = () => {
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">Time</p>
                   <p className="font-bold text-gray-900 dark:text-white text-lg">{app.slotTime}</p>
                 </div>
-                <div className="text-center">
+                <div className="text-center w-24">
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Token</p>
+                  <p className="font-bold text-gray-900 dark:text-white text-lg">#{app.tokenNumber || '?'}</p>
+                </div>
+                <div className="text-center w-24">
                   <p className="text-xs text-gray-500 font-bold uppercase tracking-wider mb-1">Status</p>
                   {getStatusBadge(app.status)}
                 </div>
