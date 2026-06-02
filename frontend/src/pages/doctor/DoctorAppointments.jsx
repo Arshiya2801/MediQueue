@@ -57,6 +57,8 @@ const DoctorAppointments = () => {
       case 'Rejected':
       case 'Skipped':
       case 'No Show':
+      case 'Expired':
+      case 'Missed':
         return <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold">{status}</span>;
       default:
         return null;

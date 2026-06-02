@@ -79,6 +79,8 @@ const QueueManagement = () => {
         return <span className="px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400 rounded-full text-xs font-bold">Completed</span>;
       case 'Skipped':
       case 'No Show':
+      case 'Expired':
+      case 'Missed':
         return <span className="px-3 py-1 bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400 rounded-full text-xs font-bold">{status}</span>;
       default:
         return null;
@@ -125,8 +127,14 @@ const QueueManagement = () => {
   };
 
   const filteredQueue = appointments.filter(app => {
-    if (filter === 'Today') return app.slotDate === todayDateStr && app.status !== 'Completed' && app.status !== 'Skipped';
-    if (filter === 'Upcoming') return app.slotDate !== todayDateStr && !app.isCompleted;
+    const [day, month, year] = app.slotDate.split('_').map(Number);
+    const appDate = new Date(year, month - 1, day);
+    appDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (filter === 'Today') return appDate.getTime() === today.getTime() && app.status !== 'Completed' && app.status !== 'Skipped';
+    if (filter === 'Upcoming') return appDate.getTime() > today.getTime() && !app.isCompleted;
     if (filter === 'Completed') return app.isCompleted || app.status === 'Skipped';
     return true;
   });

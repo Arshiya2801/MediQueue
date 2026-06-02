@@ -39,6 +39,15 @@ const MyDoctorProfile = () => {
     );
   }
 
+  const getInitials = (name) => {
+    const cleanName = name.replace('Dr. ', '').trim();
+    const parts = cleanName.split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return cleanName.substring(0, 2).toUpperCase();
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -62,8 +71,8 @@ const MyDoctorProfile = () => {
                 {profileData.image ? (
                   <img src={profileData.image} alt={profileData.name} className="w-full h-full object-cover" />
                 ) : (
-                  <span className="text-5xl font-bold text-primary/40">
-                    {profileData.name.replace('Dr. ', '').charAt(0).toUpperCase()}
+                  <span className="text-5xl font-bold text-primary/40 tracking-widest">
+                    {getInitials(profileData.name)}
                   </span>
                 )}
               </div>
