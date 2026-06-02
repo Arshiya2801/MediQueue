@@ -3,8 +3,7 @@ import Appointment from '../models/appointmentModel.js';
 import Notification from '../models/notificationModel.js';
 
 const autoRejectPastAppointments = async (docId) => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const now = new Date();
 
   const appointments = await Appointment.find({ 
     docId, 
@@ -14,13 +13,23 @@ const autoRejectPastAppointments = async (docId) => {
   });
 
   for (let app of appointments) {
+    if (!app.slotDate || !app.slotTime) continue;
     const [day, month, year] = app.slotDate.split('_').map(Number);
-    const appDate = new Date(year, month - 1, day);
-    appDate.setHours(0, 0, 0, 0);
+    const [time, modifier] = app.slotTime.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    
+    const apptDateTime = new Date(year, month - 1, day, hours, minutes);
 
-    if (appDate < today) {
-      app.status = 'Rejected';
-      app.cancelled = true;
+    if (apptDateTime < now) {
+      if (app.status === 'Pending') {
+        app.status = 'Expired';
+        app.cancelled = true;
+      } else {
+        app.status = 'Missed';
+        app.cancelled = true;
+      }
       await app.save();
       
       const docData = await Doctor.findById(app.docId);

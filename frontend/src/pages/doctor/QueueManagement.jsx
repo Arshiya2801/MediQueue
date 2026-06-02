@@ -126,15 +126,26 @@ const QueueManagement = () => {
     }
   };
 
+  const getApptDateTime = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return new Date(0);
+    const [day, month, year] = dateStr.split('_').map(Number);
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    return new Date(year, month - 1, day, hours, minutes);
+  };
+
   const filteredQueue = appointments.filter(app => {
-    const [day, month, year] = app.slotDate.split('_').map(Number);
-    const appDate = new Date(year, month - 1, day);
+    const apptDateTime = getApptDateTime(app.slotDate, app.slotTime);
+    const now = new Date();
+    const appDate = new Date(apptDateTime);
     appDate.setHours(0, 0, 0, 0);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     if (filter === 'Today') return appDate.getTime() === today.getTime() && app.status !== 'Completed' && app.status !== 'Skipped';
-    if (filter === 'Upcoming') return appDate.getTime() > today.getTime() && !app.isCompleted;
+    if (filter === 'Upcoming') return apptDateTime > now && !app.isCompleted;
     if (filter === 'Completed') return app.isCompleted || app.status === 'Skipped';
     return true;
   });
