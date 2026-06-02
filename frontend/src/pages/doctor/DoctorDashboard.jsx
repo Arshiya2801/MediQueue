@@ -4,7 +4,7 @@ import Button from '../../components/ui/Button';
 import axios from 'axios';
 import { AppContext } from '../../context/AppContext';
 import { toast } from 'react-toastify';
-import { Calendar, Users, DollarSign, Activity, Phone } from 'lucide-react';
+import { Calendar, Users, IndianRupee, Activity, Phone } from 'lucide-react';
 
 const DoctorDashboard = () => {
   const { backendUrl, token, userData, socket } = useContext(AppContext);
@@ -105,7 +105,7 @@ const DoctorDashboard = () => {
               <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">₹{stats.monthlyEarnings.toLocaleString('en-IN')}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
-              <DollarSign className="w-6 h-6" />
+              <IndianRupee className="w-6 h-6" />
             </div>
           </CardContent>
         </Card>

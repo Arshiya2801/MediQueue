@@ -68,10 +68,17 @@ const DoctorAppointments = () => {
 
   const filteredAppointments = appointments.filter(app => {
     if (filter === 'All') return true;
-    if (filter === 'Today') return app.slotDate === todayDateStr;
-    if (filter === 'Upcoming') return app.slotDate !== todayDateStr && !app.isCompleted && app.status !== 'Rejected' && app.status !== 'Skipped';
-    if (filter === 'Completed') return app.isCompleted;
-    if (filter === 'Cancelled' || filter === 'Rejected') return app.status === 'Rejected' || app.cancelled || app.status === 'Skipped';
+
+    const [day, month, year] = app.slotDate.split('_').map(Number);
+    const appDate = new Date(year, month - 1, day);
+    appDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (filter === 'Today') return appDate.getTime() === today.getTime();
+    if (filter === 'Upcoming') return appDate.getTime() > today.getTime() && !app.isCompleted && !app.cancelled;
+    if (filter === 'Completed') return app.status === 'Completed';
+    if (filter === 'Cancelled' || filter === 'Rejected') return app.status === 'Rejected' || app.status === 'Expired' || app.status === 'Missed' || app.cancelled;
     return true;
   });
 
@@ -109,7 +116,6 @@ const DoctorAppointments = () => {
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Contact</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-center">Token</th>
                 <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-4 text-xs font-bold text-gray-500 uppercase tracking-wider text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-surface-dark divide-y divide-gray-100 dark:divide-slate-700">
@@ -143,9 +149,6 @@ const DoctorAppointments = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(app.status)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                      <button className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">View Details</button>
                     </td>
                   </tr>
                 ))
