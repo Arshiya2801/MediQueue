@@ -21,6 +21,16 @@ const QueueTracking = () => {
   const [estimatedWait, setEstimatedWait] = useState(0); // minutes
   const [status, setStatus] = useState('Waiting');
   const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [currentTime, setCurrentTime] = useState(new Date());
+  
+  // Real-time clock update
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // update every minute
+    return () => clearInterval(timer);
+  }, []);
   
   // Progress bar calculation
   // Base total queue on token number. If your token is 5, total is 5.
@@ -46,6 +56,7 @@ const QueueTracking = () => {
         else if (queueData.patientsAhead === 0) setStatus('Waiting'); // if ahead is 0 but not called
         else setStatus('Waiting');
         
+        setLastUpdated(new Date());
         setLoading(false);
       }
     } catch (error) {
@@ -120,13 +131,21 @@ const QueueTracking = () => {
         
         <div className="flex items-center justify-between">
           <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Live Queue</h1>
-          <span className="flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
-            <span className="relative flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+          <div className="flex flex-col items-end gap-1">
+            <span className="flex items-center gap-2 text-sm font-bold text-green-600 bg-green-50 px-3 py-1 rounded-full border border-green-200">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+              </span>
+              Live Updates Active
             </span>
-            Live Updates Active
-          </span>
+            <span className="text-xs text-gray-500 font-medium">
+              Last updated: {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <span className="text-xs text-gray-400">
+              Current Time: {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

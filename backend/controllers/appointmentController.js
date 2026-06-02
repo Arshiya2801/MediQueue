@@ -272,7 +272,7 @@ const getQueueStatus = async (req, res) => {
       docId: appointment.docId,
       slotDate: appointment.slotDate,
       tokenNumber: { $lt: appointment.tokenNumber },
-      status: { $nin: ['Completed', 'Rejected', 'Skipped', 'No Show'] },
+      status: { $in: ['Accepted', 'Waiting', 'Called', 'In Consultation'] },
       cancelled: false
     });
 
