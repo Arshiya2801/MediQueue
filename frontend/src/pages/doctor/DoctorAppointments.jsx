@@ -65,20 +65,28 @@ const DoctorAppointments = () => {
     }
   };
 
-  const today = new Date();
-  const todayDateStr = `${today.getDate()}_${today.getMonth() + 1}_${today.getFullYear()}`;
+  const getApptDateTime = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return new Date(0);
+    const [day, month, year] = dateStr.split('_').map(Number);
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    return new Date(year, month - 1, day, hours, minutes);
+  };
 
   const filteredAppointments = appointments.filter(app => {
     if (filter === 'All') return true;
 
-    const [day, month, year] = app.slotDate.split('_').map(Number);
-    const appDate = new Date(year, month - 1, day);
-    appDate.setHours(0, 0, 0, 0);
+    const apptDateTime = getApptDateTime(app.slotDate, app.slotTime);
+    const now = new Date();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
+    const appDate = new Date(apptDateTime);
+    appDate.setHours(0, 0, 0, 0);
 
     if (filter === 'Today') return appDate.getTime() === today.getTime();
-    if (filter === 'Upcoming') return appDate.getTime() > today.getTime() && !app.isCompleted && !app.cancelled;
+    if (filter === 'Upcoming') return apptDateTime > now && !app.isCompleted && !app.cancelled;
     if (filter === 'Completed') return app.status === 'Completed';
     if (filter === 'Cancelled' || filter === 'Rejected') return app.status === 'Rejected' || app.status === 'Expired' || app.status === 'Missed' || app.cancelled;
     return true;

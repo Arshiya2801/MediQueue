@@ -115,10 +115,23 @@ const MyAppointments = () => {
     }
   };
 
+  const getApptDateTime = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return new Date(0);
+    const [day, month, year] = dateStr.split('_').map(Number);
+    const [time, modifier] = timeStr.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    if (modifier === 'PM' && hours < 12) hours += 12;
+    if (modifier === 'AM' && hours === 12) hours = 0;
+    return new Date(year, month - 1, day, hours, minutes);
+  };
+
   // Filter Logic - Only Upcoming for this page
   const filteredAppointments = appointments.filter((item) => {
-    // Only Upcoming
+    // Only Upcoming (Must be future datetime)
     if (item.cancelled || item.isCompleted) return false;
+    
+    const apptDateTime = getApptDateTime(item.slotDate, item.slotTime);
+    if (apptDateTime <= new Date()) return false;
 
     // Search by name or speciality
     if (searchTerm) {
@@ -246,14 +259,6 @@ const MyAppointments = () => {
 
                   {/* Actions */}
                   <div className="flex flex-col gap-2 mt-auto">
-                    <Button 
-                      variant="outline" 
-                      fullWidth 
-                      onClick={() => navigate(`/doctor/${item.docData._id}`)}
-                    >
-                      View Details
-                    </Button>
-                    
                     <div className="grid grid-cols-2 gap-2 mt-2">
                       <Button 
                         variant="secondary" 
