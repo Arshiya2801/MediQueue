@@ -7,13 +7,22 @@ import axios from 'axios';
 import { AppContext } from '../../context/AppContext';
 
 const DoctorAppointments = () => {
-  const { backendUrl, token } = useContext(AppContext);
+  const { backendUrl, token, socket, userData } = useContext(AppContext);
   const [appointments, setAppointments] = useState([]);
+  
   const fetchAppointments = async () => {
     try {
       const { data } = await axios.get(backendUrl + '/api/doctors/appointments', { headers: { Authorization: `Bearer ${token}` } });
       if (data.success) {
-        setAppointments(data.appointments);
+        // Filter only today's appointments
+        const today = new Date();
+        const todayDateStr = `${today.getDate()}_${today.getMonth() + 1}_${today.getFullYear()}`;
+        
+        const todaysApps = data.appointments.filter(app => app.slotDate === todayDateStr);
+        // Sort chronologically by token number (if available) or keep default sort
+        todaysApps.sort((a, b) => (a.tokenNumber || 999) - (b.tokenNumber || 999));
+        
+        setAppointments(todaysApps);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
@@ -23,6 +32,22 @@ const DoctorAppointments = () => {
   useEffect(() => {
     if (token) fetchAppointments();
   }, [token]);
+
+  useEffect(() => {
+    if (!socket || !userData?.doctorId) return;
+    
+    // Join doctor's specific room
+    socket.emit('join_doctor_room', userData.doctorId);
+
+    const handleDashboardUpdate = () => {
+      fetchAppointments();
+    };
+
+    socket.on('dashboard_update', handleDashboardUpdate);
+    return () => {
+      socket.off('dashboard_update', handleDashboardUpdate);
+    };
+  }, [socket, userData]);
 
   const updateStatus = async (id, newStatus) => {
     try {
@@ -129,9 +154,11 @@ const DoctorAppointments = () => {
               {/* Patient Info */}
               <div className="flex items-center gap-4 flex-1">
                 <DoctorAvatar doctor={app.userData} className="w-16 h-16 rounded-full object-cover shadow-sm" showContainer={false} />
-                <div>
+                <div className="space-y-1">
                   <h4 className="font-bold text-lg text-gray-900 dark:text-white">{app.userData.name}</h4>
-                  <p className="text-sm text-gray-500 font-medium">Slot: {app.slotDate}</p>
+                  <p className="text-xs text-gray-500 font-medium">Slot: {app.slotDate}</p>
+                  <p className="text-xs text-gray-500">Contact: {app.userData.phone || "Not provided"}</p>
+                  <p className="text-xs text-gray-500">Reason: Not provided</p>
                 </div>
               </div>
 

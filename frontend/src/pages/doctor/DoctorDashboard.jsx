@@ -7,15 +7,17 @@ import { toast } from 'react-toastify';
 import { Calendar, Users, DollarSign, Activity, Phone } from 'lucide-react';
 
 const DoctorDashboard = () => {
-  const { backendUrl, token, userData } = useContext(AppContext);
+  const { backendUrl, token, userData, socket } = useContext(AppContext);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [appointments, setAppointments] = useState([]);
+  const [stats, setStats] = useState({ todaysAppointments: 0, upcomingPatients: 0, monthlyEarnings: 0, totalPatients: 0 });
   
-  const fetchAppointments = async () => {
+  const fetchDashboardData = async () => {
     try {
-      const { data } = await axios.get(backendUrl + '/api/doctors/appointments', { headers: { Authorization: `Bearer ${token}` } });
+      const { data } = await axios.get(backendUrl + '/api/doctors/dashboard', { headers: { Authorization: `Bearer ${token}` } });
       if (data.success) {
-        setAppointments(data.appointments);
+        setStats(data.stats);
+        setAppointments(data.latestAppointments);
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
@@ -23,8 +25,24 @@ const DoctorDashboard = () => {
   };
 
   useEffect(() => {
-    if (token) fetchAppointments();
+    if (token) fetchDashboardData();
   }, [token]);
+
+  useEffect(() => {
+    if (!socket || !userData?.doctorId) return;
+
+    socket.emit('join_doctor_room', userData.doctorId);
+
+    const handleDashboardUpdate = () => {
+      fetchDashboardData();
+    };
+
+    socket.on('dashboard_update', handleDashboardUpdate);
+
+    return () => {
+      socket.off('dashboard_update', handleDashboardUpdate);
+    };
+  }, [socket, userData]);
 
 
   const updateStatus = async (id, newStatus) => {
@@ -36,7 +54,7 @@ const DoctorDashboard = () => {
       );
       if (data.success) {
         toast.success(`Status updated to: ${newStatus}`);
-        fetchAppointments();
+        fetchDashboardData();
       }
     } catch (error) {
       toast.error(error.response?.data?.message || error.message);
@@ -60,7 +78,7 @@ const DoctorDashboard = () => {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Today's Appointments</p>
-              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">12</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">{stats.todaysAppointments}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
               <Calendar className="w-6 h-6" />
@@ -72,7 +90,7 @@ const DoctorDashboard = () => {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Upcoming Patients</p>
-              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">8</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">{stats.upcomingPatients}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
               <Users className="w-6 h-6" />
@@ -84,7 +102,7 @@ const DoctorDashboard = () => {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Monthly Earnings</p>
-              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">$4,250</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">${stats.monthlyEarnings}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
               <DollarSign className="w-6 h-6" />
@@ -96,7 +114,7 @@ const DoctorDashboard = () => {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Total Patients</p>
-              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">1,432</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">{stats.totalPatients}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-purple-500/10 flex items-center justify-center text-purple-500">
               <Activity className="w-6 h-6" />

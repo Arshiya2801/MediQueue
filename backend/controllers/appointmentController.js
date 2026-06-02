@@ -73,6 +73,7 @@ const bookAppointment = async (req, res) => {
         message: `New appointment booked by ${userData.name}`,
         appointmentId: appointment._id
       });
+      io.to(`doctor_${docId}`).emit('dashboard_update');
     }
 
     res.status(201).json({ success: true, message: 'Appointment booked successfully', appointmentId: appointment._id });
@@ -171,6 +172,7 @@ const cancelAppointment = async (req, res) => {
         message: 'An appointment has been cancelled',
         appointmentId
       });
+      io.to(`doctor_${appointment.docId}`).emit('dashboard_update');
     }
 
     res.json({ success: true, message: 'Appointment cancelled successfully' });
@@ -228,6 +230,12 @@ const rescheduleAppointment = async (req, res) => {
     appointment.slotTime = slotTime;
     appointment.cancelled = false; // in case they are rescheduling a cancelled one
     await appointment.save();
+
+    // Emit Socket.io Event to update dashboard
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`doctor_${appointment.docId}`).emit('dashboard_update');
+    }
 
     res.json({ success: true, message: 'Appointment rescheduled successfully' });
   } catch (error) {
