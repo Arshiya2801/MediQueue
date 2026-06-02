@@ -2,6 +2,38 @@ import Doctor from '../models/doctorModel.js';
 import Appointment from '../models/appointmentModel.js';
 import Notification from '../models/notificationModel.js';
 
+const autoRejectPastAppointments = async (docId) => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const appointments = await Appointment.find({ 
+    docId, 
+    isCompleted: false, 
+    cancelled: false,
+    status: { $in: ['Pending', 'Accepted', 'Waiting', 'Called', 'In Consultation'] }
+  });
+
+  for (let app of appointments) {
+    const [day, month, year] = app.slotDate.split('_').map(Number);
+    const appDate = new Date(year, month - 1, day);
+    appDate.setHours(0, 0, 0, 0);
+
+    if (appDate < today) {
+      app.status = 'Rejected';
+      app.cancelled = true;
+      await app.save();
+      
+      const docData = await Doctor.findById(app.docId);
+      if (docData && docData.slots_booked && docData.slots_booked[app.slotDate]) {
+        docData.slots_booked[app.slotDate] = docData.slots_booked[app.slotDate].filter(
+          t => t !== app.slotTime
+        );
+        await Doctor.findByIdAndUpdate(app.docId, { slots_booked: docData.slots_booked });
+      }
+    }
+  }
+};
+
 // @desc    Fetch all doctors
 // @route   GET /api/doctors
 // @access  Public
@@ -75,6 +107,7 @@ const getDoctorAppointments = async (req, res) => {
     if (!req.user || !req.user.doctorId) {
       return res.status(403).json({ success: false, message: 'Not authorized as a doctor' });
     }
+    await autoRejectPastAppointments(req.user.doctorId);
     const appointments = await Appointment.find({ docId: req.user.doctorId }).sort({ date: -1 });
     res.json({ success: true, appointments });
   } catch (error) {
@@ -158,6 +191,7 @@ const getDoctorDashboard = async (req, res) => {
     }
 
     const docId = req.user.doctorId;
+    await autoRejectPastAppointments(docId);
     const appointments = await Appointment.find({ docId }).sort({ date: -1 });
 
     // Calculate Today's Date String (e.g. 1_6_2026)

@@ -85,7 +85,15 @@ const QueueManagement = () => {
     }
   };
 
+  const today = new Date();
+  const todayDateStr = `${today.getDate()}_${today.getMonth() + 1}_${today.getFullYear()}`;
+
   const renderActionButtons = (app) => {
+    // Prevent treating patients before their scheduled day
+    if (app.slotDate !== todayDateStr && (app.status === 'Accepted' || app.status === 'Waiting' || app.status === 'Called' || app.status === 'In Consultation')) {
+      return <span className="text-sm text-gray-400 italic font-medium px-2 py-1 bg-gray-50 dark:bg-slate-800 rounded">Available on {app.slotDate.replace(/_/g, '/')}</span>;
+    }
+
     switch (app.status) {
       case 'Accepted':
       case 'Waiting':
@@ -115,9 +123,6 @@ const QueueManagement = () => {
         return null;
     }
   };
-
-  const today = new Date();
-  const todayDateStr = `${today.getDate()}_${today.getMonth() + 1}_${today.getFullYear()}`;
 
   const filteredQueue = appointments.filter(app => {
     if (filter === 'Today') return app.slotDate === todayDateStr && app.status !== 'Completed' && app.status !== 'Skipped';
