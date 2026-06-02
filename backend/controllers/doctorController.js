@@ -208,4 +208,102 @@ const getDoctorDashboard = async (req, res) => {
   }
 };
 
-export { getDoctors, addDoctor, getDoctorById, getDoctorAppointments, updateAppointmentStatus, getDoctorDashboard };
+// @desc    Get unique patients for doctor
+// @route   GET /api/doctors/patients
+// @access  Private (Doctor)
+const getDoctorPatients = async (req, res) => {
+  try {
+    if (!req.user || !req.user.doctorId) {
+      return res.status(403).json({ success: false, message: 'Not authorized as a doctor' });
+    }
+    const docId = req.user.doctorId;
+    const appointments = await Appointment.find({ docId }).sort({ date: -1 });
+
+    const patientMap = new Map();
+    
+    // Group by userId
+    appointments.forEach(app => {
+      if (!app.userId) return;
+      const uId = app.userId.toString();
+      
+      if (!patientMap.has(uId)) {
+        patientMap.set(uId, {
+          userId: uId,
+          name: app.userData?.name || 'Unknown',
+          email: app.userData?.email || 'Unknown',
+          phone: app.userData?.phone || 'Not Provided',
+          gender: app.userData?.gender || 'Not Provided',
+          image: app.userData?.image || '',
+          totalVisits: 0,
+          lastVisitDate: null,
+          upcomingAppointment: null,
+          appointments: []
+        });
+      }
+      
+      const p = patientMap.get(uId);
+      p.totalVisits += 1;
+      p.appointments.push(app);
+      
+      // Determine if this is an upcoming app
+      if (!app.cancelled && !app.isCompleted) {
+        if (!p.upcomingAppointment) {
+          p.upcomingAppointment = `${app.slotDate} ${app.slotTime}`;
+        }
+      }
+      
+      // Determine last visit
+      if (app.isCompleted) {
+        if (!p.lastVisitDate) {
+          p.lastVisitDate = app.slotDate;
+        }
+      }
+    });
+
+    const patients = Array.from(patientMap.values());
+    res.json({ success: true, patients });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get doctor profile (for themselves)
+// @route   GET /api/doctors/my-profile
+// @access  Private (Doctor)
+const getMyProfile = async (req, res) => {
+  try {
+    if (!req.user || !req.user.doctorId) {
+      return res.status(403).json({ success: false, message: 'Not authorized as a doctor' });
+    }
+    const doctor = await Doctor.findById(req.user.doctorId);
+    if (!doctor) return res.status(404).json({ success: false, message: 'Doctor not found' });
+
+    const backendUrl = process.env.BACKEND_URL || 'http://localhost:4000';
+    const docObj = doctor.toObject();
+    docObj.image = docObj.image ? `${backendUrl}/images/${docObj.image}` : '';
+
+    // Calculate lifetime stats
+    const appointments = await Appointment.find({ docId: req.user.doctorId });
+    const uniquePatients = new Set();
+    let lifetimeEarnings = 0;
+    
+    appointments.forEach(app => {
+      if (app.userId) uniquePatients.add(app.userId.toString());
+      if (app.isCompleted) lifetimeEarnings += app.amount;
+    });
+
+    res.json({ 
+      success: true, 
+      profile: docObj, 
+      stats: {
+        totalPatients: uniquePatients.size,
+        totalAppointments: appointments.length,
+        lifetimeEarnings
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export { getDoctors, addDoctor, getDoctorById, getDoctorAppointments, updateAppointmentStatus, getDoctorDashboard, getDoctorPatients, getMyProfile };

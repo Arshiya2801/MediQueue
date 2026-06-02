@@ -37,7 +37,8 @@ const Payment = () => {
 
   if (!location.state || !location.state.doctor) return null;
 
-  const { docId, selectedDate, selectedTime, doctor } = location.state;
+  const { docId, selectedTime, doctor } = location.state;
+  const selectedDate = new Date(location.state.selectedDate); // Parse it reliably
 
   const consultationFee = doctor.fees;
   const platformFee = 50;

@@ -102,7 +102,7 @@ const DoctorDashboard = () => {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-gray-500 dark:text-gray-400">Monthly Earnings</p>
-              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">${stats.monthlyEarnings}</p>
+              <p className="text-3xl font-black text-gray-900 dark:text-white mt-1">₹{stats.monthlyEarnings.toLocaleString('en-IN')}</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500">
               <DollarSign className="w-6 h-6" />
@@ -139,41 +139,38 @@ const DoctorDashboard = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-surface-dark divide-y divide-gray-100 dark:divide-slate-700">
-              {appointments.map((app) => (
-                <tr key={app._id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button 
-                      onClick={() => setSelectedPatient(app)}
-                      className="font-bold text-primary hover:underline"
-                    >
-                      {app.userData.name}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">{app.slotDate} {app.slotTime}</span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                      app.status === 'Completed' ? 'bg-green-100 text-green-800' :
-                      app.status === 'Accepted' ? 'bg-blue-100 text-blue-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {app.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                    {app.status !== 'Completed' && app.status !== 'Rejected' && (
-                      <>
-                        {app.status === 'Pending' && <button onClick={() => updateStatus(app._id, 'Accepted')} className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">Accept</button>}
-                        {app.status === 'Pending' && <button onClick={() => updateStatus(app._id, 'Rejected')} className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">Reject</button>}
-                        {app.status === 'Accepted' && <button onClick={() => updateStatus(app._id, 'Waiting')} className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">Mark Arrived</button>}
-                        {app.status === 'Waiting' && <button onClick={() => updateStatus(app._id, 'In Consultation')} className="text-orange-600 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors">Start Cons.</button>}
-                        {app.status === 'In Consultation' && <button onClick={() => updateStatus(app._id, 'Completed')} className="text-green-600 hover:text-green-900 bg-green-50 hover:bg-green-100 px-3 py-1.5 rounded-lg transition-colors">Complete</button>}
-                      </>
-                    )}
+              {appointments.filter(app => app.status === 'Pending').length === 0 ? (
+                <tr>
+                  <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
+                    No pending appointments requiring action.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                appointments.filter(app => app.status === 'Pending').map((app) => (
+                  <tr key={app._id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <button 
+                        onClick={() => setSelectedPatient(app)}
+                        className="font-bold text-primary hover:underline"
+                      >
+                        {app.userData.name}
+                      </button>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">{app.slotDate} {app.slotTime}</span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className="px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                        {app.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
+                      <button onClick={() => updateStatus(app._id, 'Accepted')} className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors">Accept</button>
+                      <button onClick={() => updateStatus(app._id, 'Rejected')} className="text-red-600 hover:text-red-900 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg transition-colors">Reject</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

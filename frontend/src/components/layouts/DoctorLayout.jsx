@@ -20,9 +20,7 @@ const DoctorLayout = () => {
     { label: 'Appointments', path: '/doctor/appointments', icon: <Calendar className="w-5 h-5" /> },
     { label: 'Patients', path: '/doctor/patients', icon: <Users className="w-5 h-5" /> },
     { label: 'Queue Management', path: '/doctor/queue', icon: <List className="w-5 h-5" /> },
-    { label: 'Notifications', path: '#', icon: <Bell className="w-5 h-5" /> },
     { label: 'Profile', path: '/doctor/profile', icon: <User className="w-5 h-5" /> },
-    { label: 'Settings', path: '/doctor/settings', icon: <Settings className="w-5 h-5" /> },
   ];
 
   return (

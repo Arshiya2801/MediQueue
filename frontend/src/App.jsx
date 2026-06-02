@@ -10,6 +10,9 @@ import DesignSystem from './pages/DesignSystem'
 import PatientDashboard from './pages/patient/PatientDashboard'
 import DoctorDashboard from './pages/doctor/DoctorDashboard'
 import DoctorAppointments from './pages/doctor/DoctorAppointments'
+import QueueManagement from './pages/doctor/QueueManagement'
+import DoctorPatients from './pages/doctor/DoctorPatients'
+import MyDoctorProfile from './pages/doctor/MyDoctorProfile'
 import DoctorProfile from './pages/DoctorProfile'
 import BookingFlow from './pages/BookingFlow'
 import Payment from './pages/Payment'
@@ -60,8 +63,9 @@ const App = () => {
       <Route element={<ProtectedRoute allowedRoles={['doctor']}><DoctorLayout/></ProtectedRoute>}>
         <Route path='/doctor/dashboard' element={<DoctorDashboard/>} />
         <Route path='/doctor/appointments' element={<DoctorAppointments/>} />
-        {/* Profile works for both, so we duplicate the route or handle it. I'll duplicate here. */}
-        <Route path='/doctor/profile' element={<MyProfile/>} />
+        <Route path='/doctor/queue' element={<QueueManagement/>} />
+        <Route path='/doctor/patients' element={<DoctorPatients/>} />
+        <Route path='/doctor/profile' element={<MyDoctorProfile/>} />
       </Route>
 
       {/* Legacy route redirect */}

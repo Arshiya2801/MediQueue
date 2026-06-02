@@ -12,15 +12,24 @@ const AppointmentCalendar = ({ doctor, selectedDate, selectedTime, onSelectDate,
     const today = new Date();
     const newSlots = [];
 
-    // Mock booked times to demonstrate "Booked" status visuals (randomly booking 1 in every 4 slots for demo)
-    // In production, this would be cross-referenced with `doctor.slots_booked` object
-    const isSlotBookedMock = () => Math.random() > 0.75;
+    // Check if slot is booked from doctor data
+    const isSlotBooked = (dateStr, timeStr) => {
+      if (doctor && doctor.slots_booked && doctor.slots_booked[dateStr]) {
+        return doctor.slots_booked[dateStr].includes(timeStr);
+      }
+      return false;
+    };
 
     for (let i = 0; i < 7; i++) {
       const currentDate = new Date(today);
       currentDate.setDate(today.getDate() + i);
       const endTime = new Date(currentDate);
       endTime.setHours(21, 0, 0, 0); // End at 9 PM
+      
+      const day = currentDate.getDate();
+      const month = currentDate.getMonth() + 1;
+      const year = currentDate.getFullYear();
+      const dateStr = `${day}_${month}_${year}`;
 
       if (i === 0) {
         if (currentDate.getHours() >= 18) continue;
@@ -48,7 +57,7 @@ const AppointmentCalendar = ({ doctor, selectedDate, selectedTime, onSelectDate,
           dateTime: new Date(currentDate),
           time: formattedTime,
           period: period,
-          isBooked: isSlotBookedMock()
+          isBooked: isSlotBooked(dateStr, formattedTime)
         });
         currentDate.setMinutes(currentDate.getMinutes() + 30);
       }
