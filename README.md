@@ -32,11 +32,6 @@ This project is a comprehensive doctor/hospital appointment booking website buil
 
 ---
 
-## UI Preview
-![image](https://github.com/user-attachments/assets/dfb95bb2-25b1-4b96-9d31-86423d81e8ea)
-![image](https://github.com/user-attachments/assets/bc9c1c84-f140-461d-af1e-7328b64434b3)
-![image](https://github.com/user-attachments/assets/a2eef549-f73b-4dc9-8f2b-9e9e99cb188c)
-![image](https://github.com/user-attachments/assets/720279ce-fda1-4cb3-8e0b-e94552244271)
 
 
 
